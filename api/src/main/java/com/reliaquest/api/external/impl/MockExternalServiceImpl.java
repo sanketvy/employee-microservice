@@ -1,5 +1,6 @@
 package com.reliaquest.api.external.impl;
 
+import com.reliaquest.api.cache.ICacheManager;
 import com.reliaquest.api.dto.request.EmployeeRequest;
 import com.reliaquest.api.dto.response.EmployeeResponse;
 import com.reliaquest.api.exception.BadRequestException;
@@ -9,6 +10,7 @@ import com.reliaquest.api.external.IExternalService;
 import com.reliaquest.api.external.dto.ExternalDeleteEmployeeDTO;
 import com.reliaquest.api.external.dto.ExternalEmployeeResponseDTO;
 import com.reliaquest.api.external.dto.ExternalResponseDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
@@ -20,19 +22,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Slf4j
 public class MockExternalServiceImpl implements IExternalService {
 
     RestTemplate restTemplate;
 
+    ICacheManager cacheManager;
+
     @Value("${mock.external.url}")
     private String externalServiceBasePath;
 
-    public MockExternalServiceImpl(RestTemplate restTemplate){
+    public MockExternalServiceImpl(RestTemplate restTemplate, ICacheManager cacheManager){
         this.restTemplate = restTemplate;
+        this.cacheManager = cacheManager;
     }
 
     @Override
     public List<EmployeeResponse> getAllEmployees(){
+        if(cacheManager.getEmployees() != null && !cacheManager.getEmployees().isEmpty()){
+            log.info("Returning list of employees from cache.");
+            return cacheManager.getEmployees();
+        }
+
         List<EmployeeResponse> employeeResponseList = new ArrayList<>();
 
         try {
@@ -56,6 +67,8 @@ public class MockExternalServiceImpl implements IExternalService {
         } catch (Exception ex){
             throw new RuntimeException("Problem Connecting External System. Please try again.");
         }
+
+        cacheManager.setEmployees(employeeResponseList);
         return employeeResponseList;
     }
 
@@ -88,6 +101,7 @@ public class MockExternalServiceImpl implements IExternalService {
 
     @Override
     public EmployeeResponse createEmployee(EmployeeRequest employeeInput) {
+        cacheManager.invalidateCache();
         try{
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -119,6 +133,7 @@ public class MockExternalServiceImpl implements IExternalService {
 
     @Override
     public void deleteEmployee(String name) {
+        cacheManager.invalidateCache();
         try{
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
