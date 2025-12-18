@@ -74,6 +74,11 @@ public class MockExternalServiceImpl implements IExternalService {
         return employeeResponseList;
     }
 
+    /**
+     * This method returns the employee by employee_id by calling mock service.
+     *
+     * @return EmployeeResponse
+     */
     @Override
     public EmployeeResponse getEmployeeById(String id){
         try {
@@ -93,6 +98,13 @@ public class MockExternalServiceImpl implements IExternalService {
         }
     }
 
+    /**
+     * This method creates a new user based on input request
+     * Once user is created, in memory cache is invalidated
+     *
+     * @param employeeInput
+     * @return EmployeeResponse
+     */
     @Override
     public EmployeeResponse createEmployee(EmployeeRequest employeeInput) {
         try{
@@ -118,6 +130,10 @@ public class MockExternalServiceImpl implements IExternalService {
         }
     }
 
+    /**
+     * This method deletes and employee by its name and returns the deleted employees name
+     * @param name
+     */
     @Override
     public void deleteEmployee(String name) {
         try{
@@ -143,6 +159,11 @@ public class MockExternalServiceImpl implements IExternalService {
         }
     }
 
+    /**
+     * Helper method for DTO conversion
+     * @param dto
+     * @return
+     */
     private EmployeeResponse mapToEmployee(ExternalEmployeeResponseDTO dto) {
         return EmployeeResponse.builder()
                 .id(dto.getId())
@@ -153,6 +174,5 @@ public class MockExternalServiceImpl implements IExternalService {
                 .employeeTitle(dto.getEmployeeTitle())
                 .build();
     }
-
 }
 
