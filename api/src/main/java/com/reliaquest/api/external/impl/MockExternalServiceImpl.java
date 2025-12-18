@@ -25,9 +25,9 @@ import java.util.List;
 @Slf4j
 public class MockExternalServiceImpl implements IExternalService {
 
-    RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
-    ICacheManager cacheManager;
+    private final ICacheManager cacheManager;
 
     @Value("${mock.external.url}")
     private String externalServiceBasePath;
@@ -37,34 +37,36 @@ public class MockExternalServiceImpl implements IExternalService {
         this.cacheManager = cacheManager;
     }
 
+    /**
+     * This method returns all the employees by calling mock service.
+     * If the data is found in cache, then no API call will be made.
+     *
+     * @return List<EmployeeResponse>
+     */
     @Override
     public List<EmployeeResponse> getAllEmployees(){
         if(cacheManager.getEmployees() != null && !cacheManager.getEmployees().isEmpty()){
-            log.info("Returning list of employees from cache.");
+            log.info("Cache hit: returning employees from cache");
             return cacheManager.getEmployees();
         }
 
         List<EmployeeResponse> employeeResponseList = new ArrayList<>();
-
+        log.info("Cache miss: fetching employees from external service");
         try {
+            log.debug("Calling external GET {}", externalServiceBasePath);
+
             ResponseEntity<ExternalResponseDTO<List<ExternalEmployeeResponseDTO>>> response = restTemplate.exchange(externalServiceBasePath, HttpMethod.GET, null, new ParameterizedTypeReference<>() {});
             if(response.getBody() == null){
                 throw new NoDataFoundException("No Data Found.");
             }
 
             for(ExternalEmployeeResponseDTO externalResponseDTO : response.getBody().getData()){
-                employeeResponseList.add(EmployeeResponse.builder()
-                        .id(externalResponseDTO.getId())
-                        .employeeAge(externalResponseDTO.getEmployeeAge())
-                        .employeeEmail(externalResponseDTO.getEmployeeEmail())
-                        .employeeName(externalResponseDTO.getEmployeeName())
-                        .employeeSalary(externalResponseDTO.getEmployeeSalary())
-                        .employeeTitle(externalResponseDTO.getEmployeeTitle())
-                        .build());
+                employeeResponseList.add(mapToEmployee(externalResponseDTO));
             }
         } catch (HttpClientErrorException.TooManyRequests ex){
             throw new TooManyRequestsException("Too Many Requests. Please try again");
         } catch (Exception ex){
+            log.error("Error while fetching employees from external service", ex);
             throw new RuntimeException("Problem Connecting External System. Please try again.");
         }
 
@@ -80,28 +82,19 @@ public class MockExternalServiceImpl implements IExternalService {
             if(response.getBody() == null || response.getBody().getData() == null){
                 throw new NoDataFoundException("No Data Found for employee id :" + id);
             }
-
-            return EmployeeResponse.builder()
-                        .id(response.getBody().getData().getId())
-                        .employeeAge(response.getBody().getData().getEmployeeAge())
-                        .employeeEmail(response.getBody().getData().getEmployeeEmail())
-                        .employeeName(response.getBody().getData().getEmployeeName())
-                        .employeeSalary(response.getBody().getData().getEmployeeSalary())
-                        .employeeTitle(response.getBody().getData().getEmployeeTitle())
-                        .build();
-
+            return mapToEmployee(response.getBody().getData());
         } catch (HttpClientErrorException.TooManyRequests ex){
             throw new TooManyRequestsException("Too Many Requests. Please try again");
         } catch (HttpClientErrorException.NotFound ex){
             throw new BadRequestException("No Data Found for employee id : " + id);
         } catch (Exception ex){
+            log.error("Error while fetching employee from external service", ex);
             throw new RuntimeException("Problem Connecting External System. Please try again.");
         }
     }
 
     @Override
     public EmployeeResponse createEmployee(EmployeeRequest employeeInput) {
-        cacheManager.invalidateCache();
         try{
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -114,26 +107,19 @@ public class MockExternalServiceImpl implements IExternalService {
             if(response.getBody() == null || response.getBody().getData() == null){
                 throw new RuntimeException("Error Creating Entity");
             }
-
-            return EmployeeResponse.builder()
-                    .id(response.getBody().getData().getId())
-                    .employeeAge(response.getBody().getData().getEmployeeAge())
-                    .employeeEmail(response.getBody().getData().getEmployeeEmail())
-                    .employeeName(response.getBody().getData().getEmployeeName())
-                    .employeeSalary(response.getBody().getData().getEmployeeSalary())
-                    .employeeTitle(response.getBody().getData().getEmployeeTitle())
-                    .build();
-
+            // invalidate cache
+            cacheManager.invalidateCache();
+            return mapToEmployee(response.getBody().getData());
         } catch (HttpClientErrorException.TooManyRequests ex){
             throw new TooManyRequestsException("Too Many Requests. Please try again");
         } catch (Exception ex){
+            log.error("Error creating employee from external service", ex);
             throw new BadRequestException(ex.getMessage());
         }
     }
 
     @Override
     public void deleteEmployee(String name) {
-        cacheManager.invalidateCache();
         try{
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -147,11 +133,25 @@ public class MockExternalServiceImpl implements IExternalService {
                 throw new RuntimeException("Error Creating Entity");
             }
 
+            // invalidate cache
+            cacheManager.invalidateCache();
         } catch (HttpClientErrorException.TooManyRequests ex){
             throw new TooManyRequestsException("Too Many Requests. Please try again");
         } catch (Exception ex){
+            log.error("Error deleting employee from external service", ex);
             throw new BadRequestException("Invalid Data. Please use correct data.");
         }
+    }
+
+    private EmployeeResponse mapToEmployee(ExternalEmployeeResponseDTO dto) {
+        return EmployeeResponse.builder()
+                .id(dto.getId())
+                .employeeAge(dto.getEmployeeAge())
+                .employeeEmail(dto.getEmployeeEmail())
+                .employeeName(dto.getEmployeeName())
+                .employeeSalary(dto.getEmployeeSalary())
+                .employeeTitle(dto.getEmployeeTitle())
+                .build();
     }
 
 }

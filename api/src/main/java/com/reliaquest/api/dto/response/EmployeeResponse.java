@@ -19,5 +19,4 @@ public class EmployeeResponse {
     private String employeeTitle;
 
     private String employeeEmail;
-
 }

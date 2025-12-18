@@ -13,3 +13,5 @@ This microservice is responsible for implementing all the employee operations re
 `Cache Server` - In-memory/Distributed cache server, to store and improve performance of the employee service, by returning frequently accessed data from cache.
 
 In this scenario, microservice uses EHCache, an in memory data store solution to implement caching, but when horizontal scaling, caching will be implemented by Redis cluster. To implement the same, create new interface `RedisCacheManager` and implement `ICacheManager`.
+
+For Caching, read through cache pattern with cache aside for invalidation is used, we can either configure TTL for the data based on requirement. Cache is invalidated on create/update/delete operations to maintain consistency with the downstream system.

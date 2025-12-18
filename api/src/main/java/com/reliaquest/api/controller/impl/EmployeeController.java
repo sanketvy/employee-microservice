@@ -80,12 +80,24 @@ public class EmployeeController implements IEmployeeController<EmployeeResponse,
         return ResponseEntity.status(HttpStatus.OK).body(employeeService.getTopHighestEarningEmployeesNames(10));
     }
 
+    /**
+     * This method creates a new user by calling downstream mock server.
+     *
+     * @param employeeInput
+     * @return EmployeeResponse
+     */
     @Override
     @PostMapping
     public ResponseEntity<EmployeeResponse> createEmployee(@RequestBody @Valid EmployeeRequest employeeInput) {
         return ResponseEntity.status(HttpStatus.CREATED).body(employeeService.createEmployee(employeeInput));
     }
 
+    /**
+     * This method deletes the user from downstream service by employee id.
+     *
+     * @param id
+     * @return
+     */
     @Override
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteEmployeeById(@PathVariable String id) {
