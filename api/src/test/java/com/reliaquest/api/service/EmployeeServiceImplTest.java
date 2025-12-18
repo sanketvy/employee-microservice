@@ -3,8 +3,6 @@ package com.reliaquest.api.service;
 import com.reliaquest.api.cache.ICacheManager;
 import com.reliaquest.api.dto.request.EmployeeRequest;
 import com.reliaquest.api.dto.response.EmployeeResponse;
-import com.reliaquest.api.exception.BadRequestException;
-import com.reliaquest.api.exception.TooManyRequestsException;
 import com.reliaquest.api.external.IExternalService;
 import com.reliaquest.api.service.impl.EmployeeServiceImpl;
 import org.junit.jupiter.api.Test;
