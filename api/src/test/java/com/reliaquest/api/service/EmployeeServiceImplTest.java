@@ -1,6 +1,7 @@
 package com.reliaquest.api.service;
 
 import com.reliaquest.api.cache.ICacheManager;
+import com.reliaquest.api.dto.request.EmployeeRequest;
 import com.reliaquest.api.dto.response.EmployeeResponse;
 import com.reliaquest.api.exception.BadRequestException;
 import com.reliaquest.api.exception.TooManyRequestsException;
@@ -12,10 +13,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -99,6 +96,41 @@ public class EmployeeServiceImplTest {
         assertEquals("Sanket", response.get(0));
         assertEquals("Arjun", response.get(1));
         assertEquals(10, response.size());
+    }
+
+    @Test
+    public void createEmployee_WhenEmployeesExists_validateNewEmployee() {
+        EmployeeRequest employeeRequest = new EmployeeRequest("Sanket", 20000, 26, "SDE 2");
+
+        when(externalService.createEmployee(employeeRequest)).thenReturn(EmployeeResponse.builder()
+                        .employeeName("Sanket")
+                        .employeeSalary(20000)
+                        .employeeAge(26)
+                        .employeeTitle("SDE 2")
+                .build());
+
+        EmployeeResponse response = employeeService.createEmployee(employeeRequest);
+
+        assertNotNull(response);
+        assertEquals("Sanket", response.getEmployeeName());
+        assertEquals(20000, response.getEmployeeSalary());
+    }
+
+    @Test
+    public void deleteEmployee_WhenEmployeesExists_ReturnDeletedEmployeeName() {
+        String id = "1";
+        when(externalService.getEmployeeById(id)).thenReturn(EmployeeResponse.builder()
+                .employeeName("Sanket")
+                .employeeSalary(20000)
+                .employeeAge(26)
+                .employeeTitle("SDE 2")
+                .id(id)
+                .build());
+
+        String response = employeeService.deleteEmployee(id);
+
+        assertNotNull(response);
+        assertEquals("Sanket", response);
     }
 
     private List<EmployeeResponse> getMockData(){
